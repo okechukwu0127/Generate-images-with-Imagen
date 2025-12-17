@@ -7,7 +7,7 @@ export function rewritePromptSafely(prompt: string): string {
   // Force adult clarification
   rewritten = rewritten.replace(
     /\bteenager\b|\bchild\b|\bgirl\b|\bboy\b/gi,
-    "adult woman"
+    "young woman"
   );
 
   // Reduce emotional vulnerability
@@ -23,6 +23,49 @@ export function rewritePromptSafely(prompt: string): string {
   );
 
   return rewritten;
+}
+
+function rewritePromptSafelyWithLog(prompt: string): {
+  rewrittenPrompt: string;
+  adjustments: SafetyAdjustment[];
+} {
+  let rewritten = prompt;
+  const adjustments: SafetyAdjustment[] = [];
+
+  const replacements = [
+    {
+      pattern: /\bteenager\b|\bchild\b|\bgirl\b|\bboy\b/gi,
+      replacement: "adult woman",
+      reason: "Image generation is restricted to adults only",
+    },
+    {
+      pattern: /heartbreakingly|tragic|innocence|unshed tears|crying/gi,
+      replacement: "calm and reflective",
+      reason: "Emotionally vulnerable descriptions may be restricted",
+    },
+    {
+      pattern: /8k|photorealistic|ultra realistic/gi,
+      replacement: "high quality",
+      reason: "Highly realistic human imagery may be restricted",
+    },
+  ];
+
+  for (const rule of replacements) {
+    const matches = rewritten.match(rule.pattern);
+    if (matches) {
+      matches.forEach((match) => {
+        adjustments.push({
+          original: match,
+          replacement: rule.replacement,
+          reason: rule.reason,
+        });
+      });
+
+      rewritten = rewritten.replace(rule.pattern, rule.replacement);
+    }
+  }
+
+  return { rewrittenPrompt: rewritten, adjustments };
 }
 
 export function analyzePrompt(prompt: string): PromptRisk[] {
@@ -132,6 +175,65 @@ function setControlsDisabled(disabled: boolean) {
   promptEl.disabled = disabled;
 }
 
+function formatSafetyAdjustments(adjustments: SafetyAdjustment[]): string {
+  if (adjustments.length === 0) return "";
+
+  return `
+Safety adjustments were applied:
+
+${adjustments
+  .map((a) => `• "${a.original}" → "${a.replacement}"\n  Reason: ${a.reason}`)
+  .join("\n")}
+`;
+}
+
+// -----------------------------
+// UI Formatting
+// -----------------------------
+function formatSafetyAdjustmentsHTML(adjustments: SafetyAdjustment[]): string {
+  if (!adjustments.length) return "";
+
+  return `
+    <div class="safety-box">
+      <div class="safety-header">Safety adjustments applied</div>
+      <ul class="safety-list">
+        ${adjustments
+          .map(
+            (a) => `
+          <li class="safety-item">
+            <div class="safety-change">
+              <span class="original">"${a.original}"</span>
+              <span class="arrow">→</span>
+              <span class="replacement">"${a.replacement}"</span>
+            </div>
+            <div class="safety-reason">${a.reason}</div>
+          </li>
+        `
+          )
+          .join("")}
+      </ul>
+    </div>
+  `;
+}
+
+function showLoading() {
+  statusEl.innerHTML = `
+    <div class="loading-container">
+      <span class="spinner"></span>
+      <span class="loading-text">Generating image...</span>
+    </div>
+  `;
+}
+
+function showLoadingAdjustments() {
+  statusEl.innerHTML = `
+    <div class="loading-container">
+      <span class="spinner"></span>
+      <span class="loading-text">Adjusting prompt for safety and retrying...</span>
+    </div>
+  `;
+}
+
 export async function generate() {
   const apiKey = process.env.API_KEY;
 
@@ -141,36 +243,56 @@ export async function generate() {
     return;
   }
 
-  const risks = analyzePrompt(prompt);
-
-  if (!risks.includes("NONE")) {
-    const safetyMessage = getSafetyMessage(risks);
-    showStatusError(safetyMessage);
-
-    // Attempt safe rewrite
-    const rewrittenPrompt = rewritePromptSafely(prompt);
-
-    try {
-      statusEl.innerText = "Adjusting prompt and retrying...";
-      await generateImage(rewrittenPrompt, apiKey);
-      statusEl.innerText =
-        "Image generated successfully (with safe adjustments).";
-      return;
-    } catch {
-      showStatusError(
-        "Image generation failed after applying safety adjustments. Please revise your prompt."
-      );
-      return;
-    }
-  }
-
-  statusEl.innerText = "Generating image...";
+  //statusEl.innerText = "Generating image...";
+  showLoading();
   outputImage.style.display = "none";
   setControlsDisabled(true);
 
+  const risks = analyzePrompt(prompt);
+
+  if (!risks.includes("NONE")) {
+    const { rewrittenPrompt, adjustments } = rewritePromptSafelyWithLog(prompt);
+
+    try {
+      //statusEl.innerText = "Adjusting prompt for safety and retrying...";
+      showLoadingAdjustments();
+      await generateImage(rewrittenPrompt, apiKey);
+
+      statusEl.innerHTML =
+        `<div class="success-text">Image generated successfully (with safe adjustments)</div>` +
+        formatSafetyAdjustmentsHTML(adjustments);
+
+      /*
+
+      const adjustmentSummary = formatSafetyAdjustments(adjustments);
+
+     statusEl.innerText =
+       "Image generated successfully (with safe adjustments)\n\n" +
+       adjustmentSummary;
+
+       */
+
+      return;
+    } catch (e) {
+      /*  showStatusError(
+        "Image generation failed after applying safety adjustments. Please revise your prompt."
+      ); */
+
+      showStatusError(
+        e instanceof Error
+          ? e.message
+          : "Image generation failed after applying safety adjustments. Please revise your prompt."
+      );
+      return;
+    } finally {
+      setControlsDisabled(false);
+    }
+  }
+
   try {
     await generateImage(prompt, apiKey);
-    statusEl.innerText = "Image generated successfully.";
+    //statusEl.innerText = "Image generated successfully.";
+    statusEl.innerHTML = `<div class="success-text">Image generated successfully.</div>`;
   } catch (e) {
     console.error("Image generation failed:", e);
     const errorMessage =
@@ -213,7 +335,7 @@ async function generateImage(prompt: string, apiKey: string) {
     prompt,
     config: {
       personGeneration: "ALLOW_ADULT",
-      // numberOfImages: 1,
+       numberOfImages: 2,
       // outputMimeType: 'image/jpeg',
       // personGeneration: 'ALLOW_ADULT',
       // aspectRatio: '16:9',
