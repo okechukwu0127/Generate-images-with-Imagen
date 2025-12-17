@@ -2,7 +2,7 @@
   "name": "google---images-with-imagen",
   "private": true,
   "version": "0.0.0",
-  "type": "module",
+  " ": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
