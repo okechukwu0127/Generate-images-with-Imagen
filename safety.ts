@@ -160,7 +160,17 @@ const promptEl = document.querySelector("#prompt-input") as HTMLTextAreaElement;
 export const generateButton = document.querySelector(
   "#generate-button"
 ) as HTMLButtonElement;
-const outputImage = document.querySelector("#output-image") as HTMLImageElement;
+
+const outputImages = document.querySelector("#output-images") as HTMLDivElement;
+const imageCountSelect = document.querySelector(
+  "#image-count"
+) as HTMLSelectElement;
+
+const lightbox = document.getElementById("lightbox")!;
+const lightboxImage = document.getElementById(
+  "lightbox-image"
+) as HTMLImageElement;
+const lightboxClose = document.getElementById("lightbox-close")!;
 
 // --- State Variables ---
 export let prompt = "";
@@ -173,18 +183,6 @@ promptEl.addEventListener("input", () => {
 function setControlsDisabled(disabled: boolean) {
   generateButton.disabled = disabled;
   promptEl.disabled = disabled;
-}
-
-function formatSafetyAdjustments(adjustments: SafetyAdjustment[]): string {
-  if (adjustments.length === 0) return "";
-
-  return `
-Safety adjustments were applied:
-
-${adjustments
-  .map((a) => `• "${a.original}" → "${a.replacement}"\n  Reason: ${a.reason}`)
-  .join("\n")}
-`;
 }
 
 // -----------------------------
@@ -244,8 +242,9 @@ export async function generate() {
   }
 
   //statusEl.innerText = "Generating image...";
-  showLoading();
-  outputImage.style.display = "none";
+
+  //outputImage.style.display = "none";
+  outputImages.innerHTML = "";
   setControlsDisabled(true);
 
   const risks = analyzePrompt(prompt);
@@ -254,23 +253,22 @@ export async function generate() {
     const { rewrittenPrompt, adjustments } = rewritePromptSafelyWithLog(prompt);
 
     try {
-      //statusEl.innerText = "Adjusting prompt for safety and retrying...";
-      showLoadingAdjustments();
+      //showLoadingAdjustments();
+      if (adjustments.length) {
+        showLoadingAdjustments();
+      } else {
+        showLoading();
+      }
       await generateImage(rewrittenPrompt, apiKey);
 
-      statusEl.innerHTML =
-        `<div class="success-text">Image generated successfully (with safe adjustments)</div>` +
-        formatSafetyAdjustmentsHTML(adjustments);
-
-      /*
-
-      const adjustmentSummary = formatSafetyAdjustments(adjustments);
-
-     statusEl.innerText =
-       "Image generated successfully (with safe adjustments)\n\n" +
-       adjustmentSummary;
-
-       */
+      // Only show "with safe adjustments" if there are actual adjustments
+      if (adjustments.length) {
+        statusEl.innerHTML =
+          `<div class="success-text">Image generated successfully (with safe adjustments)</div>` +
+          formatSafetyAdjustmentsHTML(adjustments);
+      } else {
+        statusEl.innerHTML = `<div class="success-text">Image generated successfully.</div>`;
+      }
 
       return;
     } catch (e) {
@@ -290,9 +288,11 @@ export async function generate() {
   }
 
   try {
+    showLoading();
+    console.log("No adjustments");
     await generateImage(prompt, apiKey);
     //statusEl.innerText = "Image generated successfully.";
-    statusEl.innerHTML = `<div class="success-text">Image generated successfully.</div>`;
+    statusEl.innerHTML = `<div class="success-text">Image generated successfully..</div>`;
   } catch (e) {
     console.error("Image generation failed:", e);
     const errorMessage =
@@ -327,31 +327,96 @@ export async function generate() {
   }
 }
 
+function downloadImage(dataUrl: string, filename: string) {
+  const link = document.createElement("a");
+  link.href = dataUrl;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
 async function generateImage(prompt: string, apiKey: string) {
   const ai = new GoogleGenAI({ apiKey });
+
+  const numberOfImages = Number(imageCountSelect.value) || 1;
+  console.log("Generating", numberOfImages, "images");
+  console.log("imageCountSelect.value", imageCountSelect.value);
 
   const response = await ai.models.generateImages({
     model: "imagen-4.0-generate-001",
     prompt,
     config: {
-      personGeneration: "ALLOW_ADULT",
-       numberOfImages: 2,
-      // outputMimeType: 'image/jpeg',
-      // personGeneration: 'ALLOW_ADULT',
-      // aspectRatio: '16:9',
-      // imageSize: '1K',
+      numberOfImages, // ← change as needed
     },
   });
 
-  const images = response.generatedImages;
-  if (images === undefined || images.length === 0) {
-    throw new Error(
-      "No images were generated. The prompt may have been blocked."
-    );
+  if (!response.generatedImages?.length) {
+    throw new Error("No images were generated.");
   }
 
-  const base64ImageBytes = images[0].image.imageBytes;
-  const imageUrl = `data:image/jpeg;base64,${base64ImageBytes}`;
-  outputImage.src = imageUrl;
-  outputImage.style.display = "block";
+  //  delegate rendering to a dedicated function
+  renderGeneratedImages(response.generatedImages);
 }
+
+function renderGeneratedImages(generatedImages: any[]) {
+  outputImages.innerHTML = "";
+
+  generatedImages.forEach((generated, index) => {
+    const imgData = generated.image;
+    const imageUrl = `data:${imgData.mimeType};base64,${imgData.imageBytes}`;
+
+    // Wrapper
+    const wrapper = document.createElement("div");
+    wrapper.className = "image-card";
+
+    // Image element
+    const img = document.createElement("img");
+    img.src = imageUrl;
+    img.alt = `Generated image ${index + 1}`;
+    img.loading = "lazy"; // ✅ Lazy loading
+    img.className = "generated-image";
+
+    // 🔍 Open lightbox on click
+    img.addEventListener("click", () => openLightbox(imageUrl));
+
+    // Download button
+    const downloadBtn = document.createElement("button");
+    downloadBtn.className = "download-btn";
+    downloadBtn.innerText = "Download";
+
+    downloadBtn.addEventListener("click", () => {
+      downloadImage(imageUrl, `generated-image-${index + 1}.png`);
+    });
+
+    wrapper.appendChild(img);
+    wrapper.appendChild(downloadBtn);
+    outputImages.appendChild(wrapper);
+  });
+}
+
+function openLightbox(src: string) {
+  lightboxImage.src = src;
+  lightbox.classList.remove("hidden");
+
+  // Disable page scrolling
+  document.body.style.overflow = "hidden";
+}
+
+// Close lightbox
+function closeLightbox() {
+  lightbox.classList.add("hidden");
+
+  // Re-enable page scrolling
+  document.body.style.overflow = "";
+}
+
+/* lightbox.addEventListener("click", (e) => {
+  if (e.target === lightbox) closeLightbox();
+}); */
+
+// Event listeners
+lightboxClose.addEventListener("click", closeLightbox);
+lightbox
+  .querySelector(".lightbox-overlay")!
+  .addEventListener("click", closeLightbox);

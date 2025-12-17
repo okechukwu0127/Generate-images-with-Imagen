@@ -1,6 +1,6 @@
 :root {
-  --font-body: 'Inter', sans-serif;
-  --font-special: 'Permanent Marker', cursive;
+  --font-body: "Inter", sans-serif;
+  --font-special: "Permanent Marker", cursive;
   --yellow-primary: #facc15;
   --yellow-secondary: #fde047;
   --text-neutral-200: #e5e7eb;
@@ -39,6 +39,124 @@
   }
 }
 
+/* Image grid */
+.image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  margin-top: 12px;
+}
+
+/* Image card */
+.image-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+}
+
+/* Image */
+.generated-image {
+  width: 100%;
+  height: auto;
+  display: block;
+  transition: transform 0.3s ease;
+  object-fit: cover;
+}
+
+/* Hover zoom */
+.image-card:hover .generated-image {
+  transform: scale(1.08);
+}
+
+/* Download button */
+.download-btn {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: rgba(17, 24, 39, 0.85);
+  color: #ffffff;
+  border: none;
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+/* Show button on hover */
+.image-card:hover .download-btn {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Button hover */
+.download-btn:hover {
+  background: #2563eb;
+}
+
+/* Controls */
+.control-label {
+  flex-direction: column;
+  font-size: 13px;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.control-label select {
+  padding: 6px;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+}
+
+/* Lightbox */
+.lightbox {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw; /* full width */
+  height: 100vh; /* full height */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.9);
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.lightbox.hidden {
+  display: none;
+}
+
+.lightbox-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+#lightbox-image {
+  max-width: 90%;
+  max-height: 90%;
+  object-fit: contain;
+  z-index: 1001;
+}
+
+#lightbox-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  font-size: 2rem;
+  color: white;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  z-index: 1002;
+}
 
 .image-grid {
   display: grid;
@@ -125,7 +243,6 @@
   color: #15803d;
   margin-bottom: 8px;
 }
-
 
 /* --- Banner --- */
 .app-banner {
@@ -242,7 +359,7 @@
 .button-ai-studio {
   color: black;
   background-color: var(--yellow-primary);
-  box-shadow: 1px 1px 0px 1px rgba(0,0,0,0.2);
+  box-shadow: 1px 1px 0px 1px rgba(0, 0, 0, 0.2);
 }
 
 .button-ai-studio:hover {
@@ -272,7 +389,9 @@
 }
 
 @media (max-width: 768px) {
-  .banner-left { display: none; }
+  .banner-left {
+    display: none;
+  }
   .app-banner-content {
     grid-template-columns: 1fr;
     justify-items: center;
@@ -284,11 +403,11 @@
 }
 
 @media (max-width: 500px) {
-    .banner-buttons {
-        gap: 0.75rem;
-    }
-    .banner-button {
-        font-size: 0.8rem;
-        padding: 0.4rem 0.8rem;
-    }
+  .banner-buttons {
+    gap: 0.75rem;
+  }
+  .banner-button {
+    font-size: 0.8rem;
+    padding: 0.4rem 0.8rem;
+  }
 }

@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Generate Images with Imagen</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -36,6 +38,15 @@
           <p class="text-gray-400 mt-2 text-sm">
             Enter a prompt to generate an image with Imagen.<br />
           </p>
+          <p class="text-gray-400 mt-2 text-sm">
+            <label class="control-label">
+              Number of images
+              <select id="image-count">
+                <option value="1">1</option>
+                <option value="2">2</option>
+              </select>
+            </label>
+          </p>
         </div>
 
         <div class="space-y-4">
@@ -55,12 +66,14 @@
           Generate
         </button>
 
+        <div id="lightbox" class="lightbox hidden">
+          <div class="lightbox-overlay"></div>
+          <img id="lightbox-image" />
+          <button id="lightbox-close">&times;</button>
+        </div>
+
         <div class="w-full">
-          <img
-            id="output-image"
-            alt="Generated image"
-            class="w-full rounded-lg hidden"
-          />
+          <div id="output-images" class="image-grid"></div>
         </div>
 
         <p id="status" class="text-center text-gray-400 min-h-[24px]"></p>
