@@ -34,9 +34,10 @@ async function generateImage(prompt: string, apiKey: string) {
   const ai = new GoogleGenAI({apiKey});
 
   const response = await ai.models.generateImages({
-    model: 'imagen-4.0-generate-001',
+    model: "imagen-4.0-generate-001",
     prompt,
     config: {
+      personGeneration: "ALLOW_ADULT",
       // numberOfImages: 1,
       // outputMimeType: 'image/jpeg',
       // personGeneration: 'ALLOW_ADULT',

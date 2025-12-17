@@ -122,7 +122,7 @@
               alert('API key selection is not available in this environment.');
             }
           };
-          
+
           if (!isVisible) {
             return null;
           }
@@ -150,32 +150,7 @@
                               </AnimatePresence>
                           </div>
                       </div>
-                      <div className="banner-right">
-                          <div className="banner-buttons">
-                              <a
-                                  href="https://aistudio.google.com/apps"
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="banner-button button-gemini-chat"
-                              >
-                                  Apps on AI Studio
-                              </a>
-                              <a
-                                  href="#"
-                                  onClick={handleSelectKeyClick}
-                                  className="banner-button button-ai-studio"
-                              >
-                                  Add your API Key
-                              </a>
-                          </div>
-                          <button
-                            className="close-button"
-                            onClick={() => setIsVisible(false)}
-                            aria-label="Close notice">
-                            <CloseIcon />
-                          </button>
-                      </div>
-                  </div>
+                     </div>
               </header>
           );
       };
